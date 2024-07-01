@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Triangle HSV Color Picker</title>
+    <style>
+        #colorPicker {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: conic-gradient(
+                red, yellow, lime, cyan, blue, magenta, red
+            );
+            cursor: crosshair;
+        }
+        #triangle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-left: 200px solid transparent;
+            border-right: 200px solid transparent;
+            border-bottom: 346px solid white;
+            transform: translate(-50%, -50%);
+            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+        #pickerHandle {
+            width: 10px;
+            height: 10px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="colorPicker">
+        <div id="triangle"></div>
+        <canvas id="canvas" width="400" height="400"></canvas>
+        <div id="pickerHandle"></div>
+    </div>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const pickerHandle = document.getElementById('pickerHandle');
+        const triangle = document.getElementById('triangle');
+        let picking = false;
+
+        function drawTriangle(hue) {
+            const gradient = ctx.createLinearGradient(0, 0, 400, 0);
+            gradient.addColorStop(0, 'white');
+            gradient.addColorStop(1, `hsl(${hue}, 100%, 50%)`);
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(100, 100, 200, 200);
+
+            const gradient2 = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient2.addColorStop(0, 'transparent');
+            gradient2.addColorStop(1, 'black');
+
+            ctx.fillStyle = gradient2;
+            ctx.fillRect(100, 100, 200, 200);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(200, 100);
+            ctx.lineTo(300, 300);
+            ctx.lineTo(100, 300);
+            ctx.closePath();
+            ctx.clip();
+
+            ctx.restore();
+        }
+
+        function updateColorPicker(event) {
+            if (!picking) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            const imageData = ctx.getImageData(x, y, 1, 1).data;
+            const rgb = `rgb(${imageData[0]}, ${imageData[1]}, ${imageData[2]})`;
+            pickerHandle.style.left = `${x}px`;
+            pickerHandle.style.top = `${y}px`;
+            document.body.style.backgroundColor = rgb;
+        }
+
+        document.getElementById('colorPicker').addEventListener('mousedown', () => picking = true);
+        document.addEventListener('mouseup', () => picking = false);
+        document.addEventListener('mousemove', updateColorPicker);
+
+        drawTriangle(0); // Initial draw with red hue
+    </script>
+</body>
+</html>
