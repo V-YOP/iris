@@ -1,0 +1,296 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+
+import hsvRectShaderStr from '@/assets/hsvRect.glsl?raw'
+import hsvPickerShaderStr from '@/assets/hsvPicker.glsl?raw'
+
+import '@/App.css'
+import { useCurrentColor } from '@/color'
+import WebGLCanvas from '@/WebGLCanvas'
+import Selectable from '@/Selectable'
+
+function App() {
+  // const [currentColor, setCurrentColor] = useCurrentColor()
+
+  const [state, setState] = useState(1)
+
+  // useEffect(() => {
+  //   console.log('??')
+  //   setState(state + 1)
+  // }, [state])
+
+  // const setHue = useCallback((newHue: number) => {
+  //   const hsv = rgbToHsv(currentColor[0], currentColor[1], currentColor[2])
+  //   hsv[0] = newHue / 360
+  //   console.log('setHue', newHue, hsvToRgb(...hsv))
+  //   setCurrentColor([...hsvToRgb(...hsv), currentColor[3]])
+  // }, [currentColor, setCurrentColor])
+  
+  return (
+    <>
+      {/* <div>
+        currentColor: rgb({currentColor[0]}, {currentColor[1]}, {currentColor[2]})<br />
+        hue: {h} <br />
+      </div> */}
+
+      {/* <input type='range' min='0' max='360' step={1} value={h * 360} onChange={e => setHue(+e.target.value)}></input> */}
+      <HSVPicker />
+      {/* <HSVRectangle /> */}
+
+      <div style={{ display: 'flex' }}>
+        {/* <WebGLCanvas width={400} height={400} uniformData={{time}} frag={`
+          ${mygoShaderStr}`}>
+        </WebGLCanvas>
+        <WebGLCanvas width={400} height={400} scale={4} uniformData={{time}} frag={`
+          ${mygoShaderStr}`}>
+        </WebGLCanvas>
+        <WebGLCanvas width={400} height={400} uniformData={{hue: (hue + 90) % 360 / 360}} frag={`
+          ${hsvShaderStr}`}>
+        </WebGLCanvas>
+        <WebGLCanvas width={400} height={400} uniformData={{hue: (hue + 180) % 360 / 360}} frag={`
+          ${hsvShaderStr}`}>
+        </WebGLCanvas>
+        <WebGLCanvas width={400} height={400} uniformData={{hue: (hue + 270) % 360 / 360}} frag={`
+          ${hsvShaderStr}`}>
+        </WebGLCanvas>
+
+        <SelectableCanvas width={400} height={400} repaint={canvasRepaint} repaintTrigger={hue} selectPos={selectPos} selectPosChanged={setSelectPos} />
+        <SelectableCanvas width={400} height={400} repaint={canvasRepaint} repaintTrigger={hue} selectPos={selectPos} selectPosChanged={setSelectPos} />
+        <SelectableCanvas width={400} height={400} repaint={canvasRepaint} repaintTrigger={hue} selectPos={selectPos} selectPosChanged={setSelectPos} />
+       */}
+      </div>
+    </>
+  )
+}
+
+const HSVPicker = () => {
+  return <WebGLCanvas width={400} height={400} uniformData={{hue: 0}} frag={hsvPickerShaderStr} />
+}
+
+
+const HSVRectangle = () => {
+  const [currentColor, setCurrentColor] = useCurrentColor()
+  const setSelectPos = useCallback((newPos: [number, number]) => {
+    const currentHsv = {h: currentColor.hsv.h, s: 100 * newPos[0] / 400, v: 100 * (1 - newPos[1] / 400)}
+    console.log('setMe', currentHsv)
+    setCurrentColor('hsv', currentHsv)
+  }, [currentColor.hsv.h, setCurrentColor])
+  return (
+    <Selectable selectPos={[400 * currentColor.hsv.s / 100, (1 - currentColor.hsv.v / 100) * 400]} onSelectPosChanged={setSelectPos}>
+      <WebGLCanvas width={400} height={400} uniformData={{ hue: currentColor.hsv.h }} frag={hsvRectShaderStr} />
+      <div>wtf</div>
+    </Selectable>
+  )
+
+}
+
+// type SelectableCanvasParam = {
+//   width: number,
+//   height: number,
+//   repaintTrigger?: any,
+//   repaint: (ctx: CanvasRenderingContext2D) => void,
+//   selectPos: [number, number],
+//   selectPosChanged: (newPos: [number, number]) => void
+// }
+
+// /**
+//  * 一个支持选择特定位置的拾色器，作为拾色器的底层实现，在width，height，repaintTrigger，repaint变化时重绘；
+//  * selectPos变化时重绘选择位置（svg的一个圆）
+//  * 
+//  * TODO 拾色器和调节条考虑都用它来实现；需要提供限制选择位置的参数以适应调节条的需求（默认用clamp）
+//  * 
+//  * TODO 需要配置标识选择位置的圆的大小，样式等
+//  * 
+//  * TODO 如果性能太差，就改这里的实现为CSS或SVG或webGL
+//  */
+// function SelectableCanvas({ width, height, repaint, repaintTrigger, selectPos, selectPosChanged }: SelectableCanvasParam) {
+//   const canvas = useRef<HTMLCanvasElement>(null as unknown as HTMLCanvasElement)
+//   const redraw = useRef<(option: any) => void>(() => {})
+//   useEffect(() => {
+//     const regl = createRegl({canvas: canvas.current})
+//     const drawRect = regl({
+//       frag: hsvShaderStr,
+//       vert: vertexShaderStr,
+//       attributes: {
+//         position: [
+//             [-1, -1],
+//             [1, -1],
+//             [-1, 1],
+//             [-1, 1],
+//             [1, -1],
+//             [1, 1],
+//           ],
+//       },
+
+//       count: 6,
+
+//       uniforms: {
+//         // @ts-ignore
+//           u_hue: regl.prop('hue'),
+//       },
+//     })
+//     function draw(hue: number) {
+//       regl.clear({
+//           color: [0, 0, 0, 0],
+//           depth: 1,
+//       });
+
+//       drawRect({ hue: hue / 360 });
+//     }
+//     redraw.current = draw
+
+//   }, [])
+
+//   useEffect(() => {
+//     redraw.current && redraw.current(repaintTrigger)
+//   }, [repaintTrigger])
+
+//   const [selectorCircleColor, setSelectorCircleColor] = useState('black')
+//   useEffect(() => {
+//     let picking = false
+//     function startPicking(event: MouseEvent) {
+//       picking = true;
+//       pickColor(event);
+//     }
+
+//     function stopPicking() {
+//       picking = false;
+//     }
+
+//     function pickColor(event: MouseEvent) {
+//       if (!picking) { return }
+
+//       const rect = canvas.current.getBoundingClientRect();
+//       const x = clamp(event.clientX - rect.left, 0, canvas.current.width);
+//       const y = clamp(event.clientY - rect.top, 0, canvas.current.height);
+//       selectPosChanged([x, y])
+//     }
+
+//     canvas.current.addEventListener('mousedown', startPicking);
+//     document.addEventListener('mousemove', pickColor);
+//     document.addEventListener('mouseup', stopPicking);
+//     // canvas.current.addEventListener('mouseleave', stopPicking);
+
+//     return () => {
+//       canvas.current.removeEventListener('mousedown', startPicking);
+//       document.removeEventListener('mousemove', pickColor);
+//       document.removeEventListener('mouseup', stopPicking);
+//       // canvas.current.removeEventListener('mouseleave', stopPicking);
+//     }
+//   }, [])
+
+//   // useEffect(() => {
+//   //   const ctx = canvas.current.getContext('webgl')
+//   //   if (!ctx) return
+//   //   const data = ctx.(selectPos[0], selectPos[1], 1, 1)!.data
+//   //   const lumi = luminance(data[0], data[1], data[2])
+//   //   if (lumi > 128) {
+//   //     setSelectorCircleColor('white')
+//   //   } else {
+//   //     setSelectorCircleColor('black')
+//   //   }
+//   // }, [repaint, repaintTrigger, selectPos])
+
+//   // useEffect(() => {
+//   //   // const ctx = canvas.current.getContext('2d')
+//   //   // if (!ctx) return
+//   //   // repaint(ctx)
+//   //   const gl = canvas.current.getContext('webgl')
+//   //   console.log(gl)
+//   //   webGLDraw(gl!, repaintTrigger)
+
+
+//   // }, [width, height, repaintTrigger, repaint])
+
+//   return (
+//     <div style={{ position: 'relative', overflow: 'hidden', width, height, cursor: 'crosshair'}}>
+//       <div style={{  pointerEvents: 'none', width: '14px', height: '14px', borderRadius: '100%', border: `2px solid ${selectorCircleColor}`, position: 'absolute', top: selectPos[1], left: selectPos[0], transform: 'translate(-50%, -50%)' }}></div>
+//       <canvas width={width} height={height} ref={canvas}></canvas>
+//     </div>
+//   )
+// }
+
+
+// function clamp(x: number, min: number, max: number) {
+//   return Math.min(Math.max(x, min), max)
+// }
+
+/**
+ * 将标准化的 HSV（均为0-1的标准化值）转换为标准化的rgb值
+ * @param h 
+ * @param s 
+ * @param v 
+ * @returns 
+ */
+function hsvToRgb(h: number, s: number, v: number): [r: number, g: number, b: number] {
+  let r, g, b;
+
+  let i = Math.floor(h * 6);
+  let f = h * 6 - i;
+  let p = v * (1 - s);
+  let q = v * (1 - f * s);
+  let t = v * (1 - (1 - f) * s);
+
+  switch (i % 6) {
+    case 0: r = v, g = t, b = p; break;
+    case 1: r = q, g = v, b = p; break;
+    case 2: r = p, g = v, b = t; break;
+    case 3: r = p, g = q, b = v; break;
+    case 4: r = t, g = p, b = v; break;
+    case 5: r = v, g = p, b = q; break;
+    default: throw 'Impossible'
+  }
+
+  return [r, g, b];
+}
+
+function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h, s, v = max;
+
+  const d = max - min;
+  s = max === 0 ? 0 : d / max;
+
+  if (max === min) {
+    h = 0; // achromatic
+  } else {
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
+      default: throw 'Impossible'
+    }
+    h /= 6;
+  }
+
+  return [h, s, v];
+}
+
+/**
+ * 计算RGB值的亮度（根据Rec.709标准）
+ * @param r 红色通道的值（0-1）
+ * @param g 绿色通道的值（0-1）
+ * @param b 蓝色通道的值（0-1）
+ * @returns 亮度值（0-1）
+ */
+function luminance(r: number, g: number, b: number): number {
+  // 校验输入值是否在0-255之间
+  if (r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1) {
+    throw new Error('RGB值必须在0到1之间');
+  }
+
+  // 计算亮度
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return Math.round(luminance);
+}
+
+
+
+export default App
